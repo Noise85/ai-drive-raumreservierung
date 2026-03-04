@@ -16,6 +16,7 @@ A modern, full-stack room reservation application built with Next.js, featuring 
 - [Maintenance Guide](#maintenance-guide)
 - [Learning Resources](#learning-resources)
 - [Known Issues](#known-issues--areas-for-improvement)
+- [Contributing](#contributing)
 
 ---
 
@@ -721,6 +722,7 @@ This project follows a clean three-layer architecture:
 ├── lib/                    # Shared utilities
 │   ├── services/           # Business logic
 │   ├── repositories/       # Data access
+│   ├── schemas/            # Zod validation schemas
 │   └── i18n/               # Internationalization
 ├── scripts/                # Database scripts
 │   ├── 001-schema.sql      # Database schema
@@ -743,7 +745,7 @@ This project follows a clean three-layer architecture:
 #### 1. Clone and Install
 
 ```bash
-git clone <repository-url>
+git clone git@github.com:Noise85/ai-drive-raumreservierung.git
 cd ai-drive-raumreservierung
 
 # Install dependencies
