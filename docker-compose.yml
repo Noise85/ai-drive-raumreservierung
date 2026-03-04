@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  # Next.js Application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: raumreservierung-app
+    ports:
+      - "8080:3000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/raumreservierung
+      - NODE_ENV=production
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # PostgreSQL Database
+  db:
+    image: postgres:16-alpine
+    container_name: raumreservierung-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: raumreservierung
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d raumreservierung"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+volumes:
+  postgres_data:
