@@ -247,21 +247,155 @@ This project was developed using **AI-assisted coding techniques** with GitHub C
 5. **Version Control**: Commit frequently to track changes
 6. **Documentation**: Document design decisions and architectural choices
 
-### Example Workflow
+### From Requirements to Implementation
+
+The key to successful AI-assisted development is **quality Requirements Engineering (RE)**. Well-documented requirements enable AI to generate accurate, complete code.
+
+#### Step 1: Write User Stories with Acceptance Criteria
+
+```markdown
+## US-042: Room Booking Form
+
+**As a** building occupant  
+**I want to** book a meeting room through an intuitive form  
+**So that** I can reserve space for my meetings quickly and accurately
+
+### Acceptance Criteria
+
+**AC-042.1: Date and Time Selection**
+- GIVEN I am on the booking form
+- WHEN I select a date
+- THEN I should see available time slots for that date
+- AND past dates should be disabled
+- AND the default date should be today
+
+**AC-042.2: Room Selection**
+- GIVEN I have selected a date and time
+- WHEN I view the room dropdown
+- THEN I should only see rooms available for that time slot
+- AND each room should display: name, capacity, building, floor
+- AND rooms should be sorted by relevance (most used first)
+
+**AC-042.3: Attendee Count Validation**
+- GIVEN I have selected a room with capacity N
+- WHEN I enter an attendee count > N
+- THEN I should see an error: "Attendee count exceeds room capacity"
+- AND the form should not submit
+
+**AC-042.4: Conflict Detection**
+- GIVEN I submit a booking request
+- WHEN there is a scheduling conflict
+- THEN I should see conflicting bookings highlighted
+- AND be offered alternative time slots
+
+**AC-042.5: Successful Submission**
+- GIVEN all form fields are valid
+- WHEN I click "Book Room"
+- THEN the booking should be created in the database
+- AND I should see a success message with booking details
+- AND I should receive a confirmation (toast notification)
+```
+
+#### Step 2: Define Technical Specifications
+
+```markdown
+## Technical Specification: Booking Form Component
+
+### Component Structure
+- Location: `components/bookings/booking-form.tsx`
+- Type: Client Component ('use client')
+- Dependencies: React Hook Form, Zod, React Day Picker, Radix UI
+
+### Data Flow
+1. Form State → React Hook Form with Zod validation
+2. Room Data → Server action fetches available rooms
+3. Submission → Server action creates booking via bookingService
+
+### Validation Schema (Zod)
+| Field | Type | Validation |
+|-------|------|------------|
+| title | string | Required, 3-100 chars |
+| date | Date | Required, >= today |
+| startTime | string | Required, HH:mm format |
+| endTime | string | Required, > startTime |
+| roomId | string | Required, valid UUID |
+| attendeeCount | number | Required, 1-500, <= room.capacity |
+| notes | string | Optional, max 1000 chars |
+
+### Error States
+- Field-level errors (inline, red text)
+- Form-level errors (alert banner)
+- Conflict errors (highlighted calendar slots)
+
+### Accessibility
+- ARIA labels on all form fields
+- Keyboard navigation support
+- Focus management on errors
+- Screen reader announcements for submissions
+```
+
+#### Step 3: Create Implementation Plan
+
+From the RE documentation above, we derive a structured implementation plan:
+
+```markdown
+## Implementation Plan: US-042 Booking Form
+
+### Phase 1: Foundation (Day 1)
+- [ ] Create booking-form.tsx component skeleton
+- [ ] Define Zod validation schema
+- [ ] Set up React Hook Form with resolver
+- [ ] Create form field components (Input, Select, DatePicker)
+
+### Phase 2: Data Integration (Day 1-2)
+- [ ] Create server action: getAvailableRooms(date, startTime, endTime)
+- [ ] Create server action: createBooking(formData)
+- [ ] Implement room availability filtering
+- [ ] Add conflict detection query
+
+### Phase 3: UI/UX (Day 2)
+- [ ] Style form with Tailwind CSS
+- [ ] Add loading states and spinners
+- [ ] Implement error display (inline + banner)
+- [ ] Add success toast notification
+
+### Phase 4: Validation & Edge Cases (Day 3)
+- [ ] Test attendee count vs room capacity
+- [ ] Test date/time boundary conditions
+- [ ] Test conflict scenarios
+- [ ] Add accessibility attributes
+
+### Phase 5: Testing & Refinement (Day 3)
+- [ ] Manual testing across all ACs
+- [ ] Fix edge cases discovered
+- [ ] Code review and cleanup
+```
+
+#### Step 4: AI-Assisted Implementation
+
+With this documentation, AI can generate precise implementations:
 
 ```
-User: "Create a booking form component with date picker, 
-       room selector, and validation"
+User: "Implement AC-042.3 (Attendee Count Validation) 
+       based on the technical spec above"
 
-AI: Generates component with:
-    - React Hook Form for form state
-    - Zod for validation schema
-    - React Day Picker for dates
-    - Radix Select for room dropdown
-    - Error handling and submission logic
-
-User: Reviews, tests, and refines the component
+AI: [Generates exact validation logic matching the spec]
+    - Zod refinement comparing attendeeCount to room.capacity
+    - Error message matching acceptance criteria
+    - Form field with proper ARIA attributes
+    
+User: Reviews code against acceptance criteria, tests, commits
 ```
+
+### Why This Approach Works
+
+| Traditional Approach | RE-Driven AI Approach |
+|---------------------|----------------------|
+| Vague request: "Make a form" | Specific ACs with GIVEN/WHEN/THEN |
+| Multiple iterations to clarify | Clear expectations upfront |
+| AI guesses at requirements | AI implements documented specs |
+| Inconsistent results | Reproducible, testable output |
+| Hard to verify correctness | ACs serve as test cases |
 
 ---
 
