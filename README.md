@@ -247,56 +247,339 @@ This project was developed using **AI-assisted coding techniques** with GitHub C
 5. **Version Control**: Commit frequently to track changes
 6. **Documentation**: Document design decisions and architectural choices
 
-### From Requirements to Implementation
+### From Requirements to Implementation (Example Workflow)
 
 The key to successful AI-assisted development is **quality Requirements Engineering (RE)**. Well-documented requirements enable AI to generate accurate, complete code.
 
-#### Step 1: Write User Stories with Acceptance Criteria
+> **⚠️ Important: Tailor RE Techniques to Your Project**
+> 
+> Requirements Engineering is not one-size-fits-all. Each project demands a tailored approach:
+> 
+> | RE Phase | Considerations |
+> |----------|----------------|
+> | **Elicitation** | Interviews, workshops, prototypes — choose based on stakeholder availability and domain complexity |
+> | **Analysis** | Use cases, user stories, formal specs — match formality to project criticality |
+> | **Documentation** | Lightweight markdown vs. formal SRS — scale to team size and regulatory needs |
+> | **Validation** | Reviews, walkthroughs, acceptance tests — align with project risk profile |
+> 
+> The example below demonstrates a **medium/low-formality approach** suitable for this small size MVP. For larger enterprise systems, consider more rigorous documentation (SRS, traceability matrices). For quick prototypes, even lighter documentation may suffice.
+
+#### Step 1: Define Use Cases with Scenarios
+
+Start by identifying use cases and documenting all possible paths through the system:
 
 ```markdown
-## US-042: Room Booking Form
+## UC-007: Book a Meeting Room
 
+### Overview
+| Attribute | Value |
+|-----------|-------|
+| **Actor** | Building Occupant (Employee) |
+| **Goal** | Reserve a meeting room for a specific date/time |
+| **Preconditions** | User is authenticated, at least one room exists |
+| **Postconditions** | Booking is created, room is reserved, user receives confirmation |
+| **Trigger** | User clicks "New Booking" or navigates to booking form |
+
+---
+
+### Main Success Scenario (Happy Path)
+
+| Step | Actor Action | System Response |
+|------|--------------|-----------------|
+| 1 | User opens booking form | System displays form with today's date pre-selected |
+| 2 | User selects date | System loads available time slots for that date |
+| 3 | User selects start/end time | System filters rooms available for that time range |
+| 4 | User selects a room | System displays room details (capacity, amenities) |
+| 5 | User enters meeting title | System validates title (3-100 chars) |
+| 6 | User enters attendee count | System validates against room capacity |
+| 7 | User clicks "Book Room" | System creates booking, shows success toast |
+| 8 | — | System redirects to booking confirmation |
+
+---
+
+### Alternative Flows
+
+**AF-1: User changes date after selecting room**
+- At step 4, user changes date
+- System clears room selection
+- Flow continues from step 2
+
+**AF-2: User cancels booking**
+- At any step, user clicks "Cancel"
+- System discards form data
+- User returns to previous page
+
+---
+
+### Exception Flows (Failure Paths)
+
+**EF-1: No rooms available**
+- At step 3, no rooms match criteria
+- System displays: "No rooms available for selected time"
+- System suggests: nearby time slots with availability
+
+**EF-2: Attendee count exceeds capacity**
+- At step 6, attendeeCount > room.capacity
+- System displays inline error: "Attendee count exceeds room capacity (max: N)"
+- Form does not submit, field is highlighted
+
+**EF-3: Scheduling conflict detected**
+- At step 7, another booking exists for same room/time
+- System displays: "Conflict detected with existing booking"
+- System highlights conflicting time slots on calendar
+- System offers alternative rooms or times
+
+**EF-4: Network/server error**
+- At step 7, API call fails
+- System displays: "Unable to complete booking. Please try again."
+- Form data is preserved, user can retry
+
+---
+
+### Edge Cases
+
+| Edge Case | Expected Behavior |
+|-----------|-------------------|
+| Booking spans midnight | System rejects: "Booking must end same day" |
+| Start time = End time | System rejects: "End time must be after start time" |
+| Booking in the past | Date picker disables past dates |
+| Room deleted mid-booking | System shows error: "Room no longer available" |
+| Concurrent booking (race) | First submission wins, second gets conflict error |
+| Session expires during form | Redirect to login, preserve form in sessionStorage |
+```
+
+#### Step 2: Write User Stories Bounded to Use Cases
+
+Each user story maps to specific use case flows:
+
+```markdown
+## User Stories for UC-007
+
+### US-042: Basic Room Booking (Happy Path)
 **As a** building occupant  
 **I want to** book a meeting room through an intuitive form  
 **So that** I can reserve space for my meetings quickly and accurately
 
-### Acceptance Criteria
+**Covers:** UC-007 Main Success Scenario (Steps 1-8)
 
-**AC-042.1: Date and Time Selection**
-- GIVEN I am on the booking form
-- WHEN I select a date
-- THEN I should see available time slots for that date
-- AND past dates should be disabled
-- AND the default date should be today
+---
 
-**AC-042.2: Room Selection**
-- GIVEN I have selected a date and time
-- WHEN I view the room dropdown
-- THEN I should only see rooms available for that time slot
-- AND each room should display: name, capacity, building, floor
-- AND rooms should be sorted by relevance (most used first)
+### US-043: Room Availability Feedback (EF-1)
+**As a** building occupant  
+**I want to** see alternative options when my preferred time is unavailable  
+**So that** I can quickly find a suitable room without starting over
 
-**AC-042.3: Attendee Count Validation**
-- GIVEN I have selected a room with capacity N
-- WHEN I enter an attendee count > N
-- THEN I should see an error: "Attendee count exceeds room capacity"
-- AND the form should not submit
+**Covers:** UC-007 Exception Flow EF-1
 
-**AC-042.4: Conflict Detection**
-- GIVEN I submit a booking request
-- WHEN there is a scheduling conflict
-- THEN I should see conflicting bookings highlighted
-- AND be offered alternative time slots
+---
 
-**AC-042.5: Successful Submission**
-- GIVEN all form fields are valid
-- WHEN I click "Book Room"
-- THEN the booking should be created in the database
-- AND I should see a success message with booking details
-- AND I should receive a confirmation (toast notification)
+### US-044: Capacity Validation (EF-2)
+**As a** building occupant  
+**I want to** be warned if my attendee count exceeds room capacity  
+**So that** I don't book an inadequate space
+
+**Covers:** UC-007 Exception Flow EF-2
+
+---
+
+### US-045: Conflict Resolution (EF-3)
+**As a** building occupant  
+**I want to** see conflicting bookings and alternatives  
+**So that** I can resolve scheduling issues without frustration
+
+**Covers:** UC-007 Exception Flow EF-3
 ```
 
-#### Step 2: Define Technical Specifications
+#### Step 3: Define Acceptance Criteria per User Story
+
+```markdown
+## US-042: Basic Room Booking - Acceptance Criteria
+
+**AC-042.1: Form Initialization**
+- GIVEN I navigate to the booking form
+- WHEN the page loads
+- THEN date should default to today
+- AND time fields should be empty
+- AND room selector should show "Select a room"
+
+**AC-042.2: Time Slot Loading**
+- GIVEN I am on the booking form
+- WHEN I select a date
+- THEN available time slots should load within 500ms
+- AND unavailable slots should be grayed out
+- AND I should see a loading indicator during fetch
+
+**AC-042.3: Room Filtering**
+- GIVEN I have selected a valid date and time range
+- WHEN the room dropdown populates
+- THEN only rooms available for that time should appear
+- AND each room displays: name, capacity, building, floor
+- AND rooms are sorted by: most recently used by me first
+
+**AC-042.4: Successful Submission**
+- GIVEN all form fields are valid
+- WHEN I click "Book Room"
+- THEN a booking record is created in the database
+- AND I see a success toast: "Room booked successfully"
+- AND I am redirected to /bookings with the new booking visible
+
+---
+
+## US-044: Capacity Validation - Acceptance Criteria
+
+**AC-044.1: Inline Validation**
+- GIVEN I have selected a room with capacity 10
+- WHEN I enter attendee count 15
+- THEN I see inline error: "Exceeds room capacity (max: 10)"
+- AND the input field has error styling (red border)
+- AND the submit button remains enabled but form won't submit
+
+**AC-044.2: Boundary Validation**
+- GIVEN room capacity is 10
+- WHEN I enter exactly 10 attendees
+- THEN no error is shown
+- AND form can submit successfully
+
+**AC-044.3: Zero/Negative Prevention**
+- GIVEN I am entering attendee count
+- WHEN I enter 0 or negative number
+- THEN I see error: "At least 1 attendee required"
+```
+
+#### Step 4: Write Test Cases
+
+```markdown
+## Test Cases for US-042, US-044
+
+### TC-042-01: Happy Path - Complete Booking Flow
+| Attribute | Value |
+|-----------|-------|
+| **Precondition** | User logged in, Room "Alpha" available tomorrow 10:00-11:00 |
+| **Test Data** | Title: "Sprint Planning", Date: tomorrow, Time: 10:00-11:00, Room: Alpha, Attendees: 5 |
+
+| Step | Action | Expected Result |
+|------|--------|-----------------|
+| 1 | Navigate to /bookings/new | Form loads with today's date |
+| 2 | Select tomorrow's date | Time slots load |
+| 3 | Enter start: 10:00, end: 11:00 | Room dropdown populates |
+| 4 | Select "Alpha" | Room details shown |
+| 5 | Enter title: "Sprint Planning" | No validation error |
+| 6 | Enter attendees: 5 | No validation error |
+| 7 | Click "Book Room" | Success toast appears |
+| 8 | Verify redirect | /bookings page shows new booking |
+| 9 | Check database | Record exists with correct data |
+
+**Result:** ☐ Pass  ☐ Fail
+
+---
+
+### TC-042-02: Edge Case - Booking at Day Boundary
+| Attribute | Value |
+|-----------|-------|
+| **Precondition** | User logged in |
+| **Test Data** | Start: 23:00, End: 00:30 (next day) |
+
+| Step | Action | Expected Result |
+|------|--------|-----------------|
+| 1 | Select today's date | — |
+| 2 | Enter start: 23:00 | — |
+| 3 | Enter end: 00:30 | Error: "Booking must end same day" |
+| 4 | Try to submit | Form does not submit |
+
+**Result:** ☐ Pass  ☐ Fail
+
+---
+
+### TC-044-01: Capacity Exceeded
+| Attribute | Value |
+|-----------|-------|
+| **Precondition** | Room "Beta" has capacity 8 |
+| **Test Data** | Attendees: 12 |
+
+| Step | Action | Expected Result |
+|------|--------|-----------------|
+| 1 | Select Room "Beta" | Capacity shown: 8 |
+| 2 | Enter attendees: 12 | Inline error appears |
+| 3 | Verify error message | "Exceeds room capacity (max: 8)" |
+| 4 | Click "Book Room" | Form does not submit |
+| 5 | Change to 8 | Error clears |
+| 6 | Click "Book Room" | Booking succeeds |
+
+**Result:** ☐ Pass  ☐ Fail
+
+---
+
+### TC-044-02: Capacity Boundary (Exact Match)
+| Attribute | Value |
+|-----------|-------|
+| **Precondition** | Room "Gamma" has capacity 20 |
+| **Test Data** | Attendees: 20 |
+
+| Step | Action | Expected Result |
+|------|--------|-----------------|
+| 1 | Select Room "Gamma" | — |
+| 2 | Enter attendees: 20 | No error (boundary valid) |
+| 3 | Click "Book Room" | Booking succeeds |
+
+**Result:** ☐ Pass  ☐ Fail
+
+---
+
+### TC-EF3-01: Conflict Detection
+| Attribute | Value |
+|-----------|-------|
+| **Precondition** | Room "Delta" booked tomorrow 14:00-15:00 |
+| **Test Data** | Same room, 14:30-15:30 (overlaps) |
+
+| Step | Action | Expected Result |
+|------|--------|-----------------|
+| 1 | Select tomorrow, 14:30-15:30 | — |
+| 2 | Select Room "Delta" | — |
+| 3 | Complete form and submit | Error: "Conflict detected" |
+| 4 | Verify conflict display | Existing booking highlighted |
+| 5 | Verify alternatives | System suggests 15:00+ or other rooms |
+
+**Result:** ☐ Pass  ☐ Fail
+```
+
+#### Step 5: Iterate Until Complete
+
+```markdown
+## RE Iteration Checklist
+
+### Iteration 1: Initial Draft ✓
+- [x] Use cases documented
+- [x] Happy path defined
+- [x] User stories written
+- [ ] Review with stakeholders
+
+### Iteration 2: Exception Handling
+- [x] Failure paths added
+- [x] Edge cases identified  
+- [x] Error messages specified
+- [ ] UX review for error states
+
+### Iteration 3: Test Coverage
+- [x] Test cases for happy path
+- [x] Test cases for boundaries
+- [x] Test cases for failures
+- [ ] Automated test feasibility check
+
+### Iteration 4: Refinement (Current)
+- [ ] Stakeholder feedback incorporated
+- [ ] Missing scenarios added
+- [ ] Test cases updated
+- [ ] Ready for implementation
+
+### Definition of Done
+- [ ] All use case flows have acceptance criteria
+- [ ] All acceptance criteria have test cases
+- [ ] Edge cases documented and tested
+- [ ] Documentation reviewed by team
+- [ ] Implementation plan approved
+```
+
+#### Step 6: Technical Specification
 
 ```markdown
 ## Technical Specification: Booking Form Component
@@ -334,7 +617,7 @@ The key to successful AI-assisted development is **quality Requirements Engineer
 - Screen reader announcements for submissions
 ```
 
-#### Step 3: Create Implementation Plan
+#### Step 7: Create Implementation Plan
 
 From the RE documentation above, we derive a structured implementation plan:
 
@@ -371,7 +654,7 @@ From the RE documentation above, we derive a structured implementation plan:
 - [ ] Code review and cleanup
 ```
 
-#### Step 4: AI-Assisted Implementation
+#### Step 8: AI-Assisted Implementation
 
 With this documentation, AI can generate precise implementations:
 
